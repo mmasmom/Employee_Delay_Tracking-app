@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تقارير الحضور والانصراف</title>
+    <!-- Bootstrap RTL مع مظهر عصري -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- خطوط جوجل أنيقة -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- المكتبات الأساسية -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3c72;
+            --secondary: #2a5298;
+            --accent: #f39c12;
+            --light-bg: #f8f9fc;
+            --border-radius: 20px;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecf2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .main-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-right: 15px;
+            border-right: 8px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .page-title i {
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px dashed #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+        .upload-area {
+            background: linear-gradient(145deg, #ffffff, #f0f4ff);
+            border: 2px dashed var(--primary);
+            border-radius: 18px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-area:hover {
+            background: #e6f0ff;
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(30, 60, 114, 0.2);
+        }
+        .upload-area i {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .upload-area h5 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        .upload-area p {
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+        .file-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 5px 15px;
+            border-radius: 50px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .small-upload {
+            min-height: 130px;
+        }
+        .settings-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02);
+            border: 1px solid rgba(30, 60, 114, 0.1);
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-weight: 700;
+            border-radius: 50px;
+            box-shadow: 0 8px 20px rgba(30, 60, 114, 0.3);
+            transition: all 0.3s;
+            width: 100%;
+            font-size: 1rem;
+        }
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(30, 60, 114, 0.4);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+        }
+        .btn-outline-pdf {
+            background: white;
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-outline-pdf:hover {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-outline-excel {
+            background: white;
+            border: 2px solid #27ae60;
+            color: #27ae60;
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-outline-excel:hover {
+            background: #27ae60;
+            color: white;
+        }
+        .btn-outline-summary {
+            background: white;
+            border: 2px solid #3498db;
+            color: #3498db;
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-outline-summary:hover {
+            background: #3498db;
+            color: white;
+        }
+        .pivot-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 6px;
+        }
+        .pivot-table th {
+            background: var(--primary);
+            color: white;
+            padding: 14px 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+        }
+        .pivot-table th:first-child {
+            border-radius: 0 12px 12px 0;
+        }
+        .pivot-table th:last-child {
+            border-radius: 12px 0 0 12px;
+        }
+        .employee-row {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid #eef2f6;
+        }
+        .employee-row:hover {
+            box-shadow: 0 6px 16px rgba(30, 60, 114, 0.12);
+            background: #fcfcfc;
+        }
+        .employee-row td {
+            padding: 12px 8px;
+            vertical-align: middle;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .employee-row td:first-child {
+            border-radius: 0 12px 12px 0;
+        }
+        .employee-row td:last-child {
+            border-radius: 12px 0 0 12px;
+        }
+        .detail-row td {
+            padding: 0 15px 15px 15px;
+            border: none;
+        }
+        .details-inner {
+            background: #f8fafd;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #dde7f0;
+        }
+        .delay-input, .grace-used-input {
+            width: 70px;
+            padding: 4px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .grace-used-input {
+            background-color: #fef9e7;
+            border-color: var(--accent);
+        }
+        .summary-stats {
+            background: linear-gradient(135deg, #eef4ff, #ffffff);
+            padding: 15px;
+            border-radius: 18px;
+            margin: 15px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            border: 1px solid #d0e0ff;
+        }
+        .stat-item {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.02);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #e9ecef;
+            font-size: 0.9rem;
+        }
+        .stat-item i {
+            color: var(--accent);
+        }
+        .badge-ramadan {
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .table-responsive {
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- العنوان الرئيسي -->
+        <div class="glass-card">
+            <div class="page-title">
+                <i class="fas fa-chart-pie"></i>
+                <span>نظام تقارير الحضور والانصراف</span>
+            </div>
+
+            <div class="row g-3">
+                <!-- الجانب الأيمن: رفع الملفات والإعدادات -->
+                <div class="col-lg-4">
+                    <div class="section-title">
+                        <i class="fas fa-upload"></i>
+                        <span>رفع بيانات الحضور</span>
+                    </div>
+                    <div class="upload-area" onclick="document.getElementById('attendanceFile').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h5>اضغط لرفع الملف</h5>
+                        <p class="text-muted mb-2">CSV أو Excel</p>
+                        <span class="file-badge"><i class="fas fa-check-circle"></i> اختر ملفاً</span>
+                        <input type="file" id="attendanceFile" accept=".csv,.xlsx,.xls" class="d-none" onchange="handleAttendanceFile(this.files[0])">
+                    </div>
+                    <div id="attendanceFileName" class="alert alert-success mt-2 py-2 d-none">
+                        <i class="fas fa-check-circle"></i> الملف: <span id="fileNameSpan"></span>
+                    </div>
+
+                    <!-- بيانات الموظفين -->
+                    <div class="mt-3">
+                        <div class="section-title">
+                            <i class="fas fa-id-card"></i>
+                            <span>بيانات الموظفين (اختياري)</span>
+                        </div>
+                        <div class="upload-area small-upload" onclick="document.getElementById('employeesFile').click()">
+                            <i class="fas fa-users fa-2x"></i>
+                            <p class="small">رفع ملف برقم وظيفي واسم</p>
+                            <span class="file-badge" style="background: #28a745;"><i class="fas fa-upload"></i> اختر</span>
+                            <input type="file" id="employeesFile" accept=".csv,.xlsx,.xls" class="d-none" onchange="handleEmployeesFile(this.files[0])">
+                        </div>
+                        <div id="employeesFileName" class="alert alert-info mt-2 py-2 d-none">
+                            <i class="fas fa-check-circle"></i> تم تحميل الأسماء
+                        </div>
+                    </div>
+
+                    <!-- إعدادات رمضان والسماح -->
+                    <div class="settings-card mt-3">
+                        <div class="section-title mb-2">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>شهر رمضان</span>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">من تاريخ</label>
+                                <input type="date" id="ramadanStart" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">إلى تاريخ</label>
+                                <input type="date" id="ramadanEnd" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="applyRamadanAll">
+                            <label class="form-check-label small">
+                                <span class="badge-ramadan">رمضان</span> تطبيق على جميع الأيام
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-card mt-3">
+                        <div class="section-title mb-2">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>مدة السماح</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small fw-bold">الحد الأقصى:</label>
+                            <input type="number" id="graceMinutes" class="form-control form-control-sm w-auto" value="60" min="0" step="1" style="width: 70px;">
+                            <span class="small">دقيقة</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-gradient mt-3" onclick="processAttendanceData()">
+                        <i class="fas fa-cogs ms-2"></i> معالجة البيانات
+                    </button>
+                </div>
+
+                <!-- الجانب الأيسر: الجدول المحوري وخيارات التصدير -->
+                <div class="col-lg-8">
+                    <div class="section-title">
+                        <i class="fas fa-table"></i>
+                        <span>الجدول المحوري (قابل للتعديل)</span>
+                    </div>
+
+                    <!-- ملخص عام -->
+                    <div class="summary-stats" id="summaryStats">
+                        <div class="stat-item"><i class="fas fa-users"></i> عدد الموظفين: <span id="empCount">0</span></div>
+                        <div class="stat-item"><i class="fas fa-clock"></i> إجمالي التأخير: <span id="totalDelay">0</span></div>
+                        <div class="stat-item"><i class="fas fa-check-circle"></i> السماح المستخدم: <span id="usedGrace">0</span></div>
+                        <div class="stat-item"><i class="fas fa-filter"></i> صافي التأخير: <span id="netDelay">0</span></div>
+                    </div>
+
+                    <!-- خيارات التصدير (تظهر بعد المعالجة) -->
+                    <div id="exportOptions" style="display: none;" class="mb-3">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                            <button class="btn-outline-pdf" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf ms-1"></i> PDF شامل
+                            </button>
+                            <button class="btn-outline-excel" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel ms-1"></i> Excel شامل
+                            </button>
+                            <button class="btn-outline-summary" onclick="exportSummaryToPDF()">
+                                <i class="fas fa-file-pdf ms-1"></i> PDF ملخص
+                            </button>
+                            <button class="btn-outline-summary" onclick="exportSummaryToExcel()">
+                                <i class="fas fa-file-excel ms-1"></i> Excel ملخص
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- الجدول المحوري -->
+                    <div class="table-responsive" style="max-height: 550px; overflow-y: auto;">
+                        <table class="pivot-table">
+                            <thead>
+                                <tr>
+                                    <th>رقم الموظف</th>
+                                    <th>الاسم</th>
+                                    <th>إجمالي التأخير</th>
+                                    <th>السماح المستخدم</th>
+                                    <th>صافي التأخير</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pivotBody">
+                                <tr><td colspan="5" class="text-center text-muted py-4">لم يتم تحميل بيانات بعد</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <i class="fas fa-crown"></i> تصميم أنيق وأداء عالي
+        </div>
+    </div>
+
+    <script>
+        // ---------- المتغيرات العامة ----------
+        let attendanceData = [];
+        let employeesMap = new Map();
+        let processedData = null;
+        let globalMaxGrace = 60;
+
+        // ---------- دوال مساعدة للعثور على القيم ----------
+        function findValue(row, possibleKeys) {
+            for (let key of possibleKeys) {
+                let foundKey = Object.keys(row).find(k => 
+                    possibleKeys.some(p => k.toLowerCase().includes(p.toLowerCase()))
+                );
+                if (foundKey && row[foundKey] !== '') return row[foundKey];
+            }
+            return null;
+        }
+
+        // ---------- معالجة ملف الحضور ----------
+        function handleAttendanceFile(file) {
+            document.getElementById('attendanceFileName').classList.remove('d-none');
+            document.getElementById('fileNameSpan').innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let data = e.target.result;
+                let ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'csv') {
+                    Papa.parse(data, { header: true, skipEmptyLines: true, complete: (res) => {
+                        attendanceData = res.data;
+                    }});
+                } else {
+                    let wb = XLSX.read(data, { type: 'binary' });
+                    attendanceData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                }
+            };
+            if (file.name.endsWith('.csv')) reader.readAsText(file, 'UTF-8');
+            else reader.readAsBinaryString(file);
+        }
+
+        // ---------- معالجة ملف الموظفين ----------
+        function handleEmployeesFile(file) {
+            document.getElementById('employeesFileName').classList.remove('d-none');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let data = e.target.result;
+                let ext = file.name.split('.').pop().toLowerCase();
+                let rows = [];
+                if (ext === 'csv') {
+                    Papa.parse(data, { header: true, skipEmptyLines: true, complete: (r) => { rows = r.data; } });
+                } else {
+                    let wb = XLSX.read(data, { type: 'binary' });
+                    rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                }
+                employeesMap.clear();
+                rows.forEach(row => {
+                    let idKey = Object.keys(row).find(k => 
+                        k.toLowerCase().includes('employee') || 
+                        k.toLowerCase().includes('id') || 
+                        k.includes('رقم')
+                    );
+                    let nameKey = Object.keys(row).find(k => 
+                        k.toLowerCase().includes('name') || 
+                        k.includes('اسم')
+                    );
+                    if (idKey && nameKey) {
+                        let id = String(row[idKey]).trim();
+                        let name = String(row[nameKey]).trim();
+                        if (id) employeesMap.set(id, name);
+                    }
+                });
+                if (employeesMap.size === 0 && rows.length > 0) {
+                    let keys = Object.keys(rows[0]);
+                    if (keys.length >= 2) {
+                        rows.forEach(row => {
+                            let id = String(row[keys[0]]).trim();
+                            let name = String(row[keys[1]]).trim();
+                            if (id) employeesMap.set(id, name);
+                        });
+                    }
+                }
+            };
+            if (file.name.endsWith('.csv')) reader.readAsText(file, 'UTF-8');
+            else reader.readAsBinaryString(file);
+        }
+
+        // ---------- تحويل الوقت إلى دقائق ----------
+        function timeToMinutes(t) {
+            if (!t) return null;
+            let parts = String(t).split(':');
+            if (parts.length >= 2) return parseInt(parts[0])*60 + parseInt(parts[1]);
+            return null;
+        }
+
+        // ---------- تحليل التاريخ بدقة ----------
+        function parseDate(str) {
+            if (!str) return null;
+            str = String(str).trim();
+            let m = moment(str, 'DD/MM/YYYY', true);
+            if (m.isValid()) return m.startOf('day');
+            m = moment(str, ['DD/MM/YYYY', 'D/M/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD'], true);
+            if (m.isValid()) return m.startOf('day');
+            return null;
+        }
+
+        // ---------- معالجة البيانات وعرض الجدول المحوري ----------
+        function processAttendanceData() {
+            if (!attendanceData.length) { 
+                alert('الرجاء تحميل ملف الحضور أولاً.');
+                return;
+            }
+
+            let startInput = document.getElementById('ramadanStart').value;
+            let endInput = document.getElementById('ramadanEnd').value;
+            let applyAll = document.getElementById('applyRamadanAll').checked;
+            
+            let ramadanStart = startInput ? moment(startInput, 'YYYY-MM-DD').startOf('day') : null;
+            let ramadanEnd = endInput ? moment(endInput, 'YYYY-MM-DD').startOf('day') : null;
+            let isRamadanRangeValid = ramadanStart && ramadanEnd && ramadanStart.isSameOrBefore(ramadanEnd);
+
+            globalMaxGrace = parseInt(document.getElementById('graceMinutes').value) || 0;
+
+            let empRecords = new Map();
+
+            attendanceData.forEach(row => {
+                let empId = findValue(row, ['Employee ID','EmployeeId','رقم الموظف']);
+                if (!empId) return;
+                empId = String(empId).trim();
+
+                let firstName = findValue(row, ['First Name','FirstName','الاسم الأول']) || '';
+                let dateStr = findValue(row, ['Date','التاريخ']);
+                let weekday = findValue(row, ['Weekday','اليوم']) || '';
+                let firstIn = findValue(row, ['First Check In','FirstCheckIn','أول تسجيل دخول']);
+                let lastOut = findValue(row, ['Last Check Out','LastCheckOut','أخر تسجيل خروج']);
+
+                if (!firstIn) return;
+                let date = parseDate(dateStr);
+                if (!date) return;
+
+                let firstMin = timeToMinutes(firstIn);
+                let lastMin = lastOut ? timeToMinutes(lastOut) : null;
+
+                if (firstMin !== null && lastMin !== null && firstMin > lastMin) {
+                    [firstMin, lastMin] = [lastMin, firstMin];
+                }
+
+                let required = 8 * 60;
+                if (applyAll) {
+                    required = 9 * 60 + 30;
+                } else if (isRamadanRangeValid) {
+                    let dateTime = date.valueOf();
+                    let startTime = ramadanStart.valueOf();
+                    let endTime = ramadanEnd.valueOf();
+                    if (dateTime >= startTime && dateTime <= endTime) {
+                        required = 9 * 60 + 30;
+                    }
+                }
+
+                let delay = firstMin !== null ? Math.max(0, firstMin - required) : 0;
+                let empName = employeesMap.get(empId) || firstName || 'غير محدد';
+
+                if (!empRecords.has(empId)) {
+                    empRecords.set(empId, { 
+                        name: empName, 
+                        totalDelay: 0,
+                        usedGrace: 0,
+                        details: [] 
+                    });
+                }
+                let empData = empRecords.get(empId);
+                empData.details.push({
+                    dateStr, 
+                    day: weekday, 
+                    firstIn: firstIn || '—', 
+                    delay: delay
+                });
+                empData.totalDelay += delay;
+            });
+
+            if (empRecords.size === 0) { 
+                alert('لا توجد بيانات صالحة.'); 
+                return; 
+            }
+
+            processedData = Array.from(empRecords.entries()).map(([empId, data]) => {
+                data.details.sort((a,b) => {
+                    let dateA = parseDate(a.dateStr);
+                    let dateB = parseDate(b.dateStr);
+                    return dateA - dateB;
+                });
+                data.usedGrace = Math.min(data.totalDelay, globalMaxGrace);
+                return { empId, ...data };
+            });
+
+            renderPivotTable();
+            document.getElementById('exportOptions').style.display = 'block';
+        }
+
+        // ---------- عرض الجدول المحوري ----------
+        function renderPivotTable() {
+            let tbody = document.getElementById('pivotBody');
+            tbody.innerHTML = '';
+
+            let totalEmployees = processedData.length;
+            let totalDelayAll = processedData.reduce((sum, emp) => sum + emp.totalDelay, 0);
+            let totalUsedGrace = processedData.reduce((sum, emp) => sum + emp.usedGrace, 0);
+            let totalNetDelay = processedData.reduce((sum, emp) => sum + Math.max(0, emp.totalDelay - emp.usedGrace), 0);
+
+            document.getElementById('empCount').innerText = totalEmployees;
+            document.getElementById('totalDelay').innerText = totalDelayAll;
+            document.getElementById('usedGrace').innerText = totalUsedGrace;
+            document.getElementById('netDelay').innerText = totalNetDelay;
+
+            processedData.forEach((emp, empIndex) => {
+                let netDelay = Math.max(0, emp.totalDelay - emp.usedGrace);
+                let row = document.createElement('tr');
+                row.className = 'employee-row';
+                row.setAttribute('data-target', `details-${empIndex}`);
+                row.onclick = function(e) {
+                    if (e.target.tagName === 'INPUT') return;
+                    let details = document.getElementById(`details-${empIndex}`);
+                    if (details) {
+                        details.style.display = details.style.display === 'none' ? 'table-row' : 'none';
+                    }
+                };
+                
+                let graceInput = `<input type="number" class="grace-used-input" 
+                                       value="${emp.usedGrace}" 
+                                       min="0" max="${emp.totalDelay}"
+                                       data-emp="${emp.empId}" 
+                                       onclick="event.stopPropagation()"
+                                       onchange="updateUsedGrace(this)">`;
+                
+                row.innerHTML = `
+                    <td><i class="fas fa-chevron-left ms-1"></i> ${emp.empId}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.totalDelay}</td>
+                    <td>${graceInput}</td>
+                    <td>${netDelay}</td>
+                `;
+                tbody.appendChild(row);
+
+                let detailRow = document.createElement('tr');
+                detailRow.id = `details-${empIndex}`;
+                detailRow.className = 'detail-row';
+                detailRow.style.display = 'none';
+                let detailCell = document.createElement('td');
+                detailCell.colSpan = 5;
+                detailCell.innerHTML = `
+                    <div class="details-inner">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead>
+                                <tr style="background: #e9ecef;">
+                                    <th>التاريخ</th>
+                                    <th>اليوم</th>
+                                    <th>وقت الدخول</th>
+                                    <th>دقائق التأخير</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${emp.details.map((d, idx) => `
+                                    <tr>
+                                        <td>${d.dateStr}</td>
+                                        <td>${d.day}</td>
+                                        <td>${d.firstIn}</td>
+                                        <td>
+                                            <input type="number" class="delay-input" 
+                                                   value="${d.delay}" 
+                                                   data-emp="${emp.empId}" 
+                                                   data-date="${d.dateStr}"
+                                                   onclick="event.stopPropagation()"
+                                                   onchange="updateDelay(this)">
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                detailRow.appendChild(detailCell);
+                tbody.appendChild(detailRow);
+            });
+        }
+
+        // ---------- تحديث التأخير الفردي ----------
+        function updateDelay(input) {
+            let empId = input.getAttribute('data-emp');
+            let dateStr = input.getAttribute('data-date');
+            let newValue = parseInt(input.value) || 0;
+            let emp = processedData.find(e => e.empId === empId);
+            if (emp) {
+                let detail = emp.details.find(d => d.dateStr === dateStr);
+                if (detail) {
+                    let diff = newValue - detail.delay;
+                    detail.delay = newValue;
+                    emp.totalDelay += diff;
+                    if (emp.usedGrace > emp.totalDelay) emp.usedGrace = emp.totalDelay;
+                    renderPivotTable();
+                }
+            }
+        }
+
+        // ---------- تحديث السماح المستخدم ----------
+        function updateUsedGrace(input) {
+            let empId = input.getAttribute('data-emp');
+            let newValue = parseInt(input.value) || 0;
+            let emp = processedData.find(e => e.empId === empId);
+            if (emp) {
+                emp.usedGrace = Math.min(Math.max(newValue, 0), emp.totalDelay);
+                renderPivotTable();
+            }
+        }
+
+        // ---------- دوال مساعدة للتواريخ ----------
+        function getFirstAndLastDate() {
+            let allDates = [];
+            processedData.forEach(emp => {
+                emp.details.forEach(d => {
+                    let date = parseDate(d.dateStr);
+                    if (date) allDates.push(date);
+                });
+            });
+            if (allDates.length === 0) return { first: '---', last: '---' };
+            let first = moment.min(allDates);
+            let last = moment.max(allDates);
+            return {
+                first: first.format('DD/MM/YYYY'),
+                last: last.format('DD/MM/YYYY')
+            };
+        }
+
+        // ---------- تصدير شامل إلى PDF (يبقى باستخدام html2pdf) ----------
+        async function exportToPDF() {
+            if (!processedData) { alert('الرجاء معالجة البيانات أولاً.'); return; }
+            const container = document.createElement('div');
+            container.style.fontFamily = 'Cairo, sans-serif';
+            container.style.direction = 'rtl';
+            container.style.padding = '25px';
+
+            let totalDelayAll = processedData.reduce((sum, emp) => sum + emp.totalDelay, 0);
+            let totalNetDelay = processedData.reduce((sum, emp) => sum + Math.max(0, emp.totalDelay - emp.usedGrace), 0);
+            let dates = getFirstAndLastDate();
+
+            // بطاقات الإحصائيات
+            let summaryCardsHtml = `
+                <div style="background: linear-gradient(135deg, #eef4ff, #ffffff); padding:15px; border-radius:18px; margin:15px 0; display:flex; flex-wrap:wrap; gap:15px; align-items:center; border:1px solid #d0e0ff;">
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-calendar-alt" style="color:#f39c12;"></i> تاريخ التقرير: ${moment().format('YYYY/MM/DD')}
+                    </div>
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-calendar-week" style="color:#f39c12;"></i> الفترة: ${dates.first} - ${dates.last}
+                    </div>
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-hourglass-half" style="color:#f39c12;"></i> مدة السماح: ${globalMaxGrace} دقيقة
+                    </div>
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-users" style="color:#f39c12;"></i> عدد الموظفين: ${processedData.length}
+                    </div>
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-clock" style="color:#f39c12;"></i> إجمالي التأخير: ${totalDelayAll}
+                    </div>
+                    <div style="background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef;">
+                        <i class="fas fa-filter" style="color:#f39c12;"></i> صافي التأخير: ${totalNetDelay}
+                    </div>
+                </div>
+            `;
+
+            let html = `
+                <h2 style="color:#1e3c72; border-bottom:3px solid #f39c12; padding-bottom:8px; margin-top:0;">تقرير الحضور والانصراف الشامل</h2>
+                ${summaryCardsHtml}
+            `;
+
+            processedData.forEach((emp, index) => {
+                let net = Math.max(0, emp.totalDelay - emp.usedGrace);
+                let pageBreak = index > 0 ? 'page-break-before: always;' : '';
+                html += `
+                    <div style="margin-top:30px; background:white; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05); padding:15px; ${pageBreak}">
+                        <h4 style="background:#1e3c72; color:white; padding:8px 12px; border-radius:6px;">${emp.name} (${emp.empId})</h4>
+                        <table style="width:100%; background:#f0f7ff; margin:10px 0; border-radius:6px; padding:8px;">
+                            <tr><td><strong>إجمالي التأخير:</strong> ${emp.totalDelay}</td><td><strong>السماح المستخدم:</strong> ${emp.usedGrace}</td><td><strong>صافي التأخير:</strong> ${net}</td></tr>
+                        </table>
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead><tr style="background:#1e3c72; color:white;"><th>التاريخ</th><th>اليوم</th><th>الدخول</th><th>التأخير</th></tr></thead>
+                            <tbody>
+                                ${emp.details.map(d => `<tr style="border-bottom:1px solid #ddd;"><td>${d.dateStr}</td><td>${d.day}</td><td>${d.firstIn}</td><td>${d.delay}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            const opt = { margin: [0.5,0.5,0.5,0.5], filename: `تقرير_موظفين_${moment().format('YYYYMMDD_HHmm')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+            await html2pdf().set(opt).from(container).save();
+        }
+
+        // ---------- تصدير شامل إلى Excel ----------
+        function exportToExcel() {
+            if (!processedData) { alert('الرجاء معالجة البيانات أولاً.'); return; }
+            let data = [['رقم الموظف', 'الاسم', 'التاريخ', 'اليوم', 'وقت الدخول', 'دقائق التأخير', 'ملاحظات']];
+            processedData.forEach(emp => {
+                let net = Math.max(0, emp.totalDelay - emp.usedGrace);
+                data.push([emp.empId, emp.name, '', '', '', '', '']);
+                data.push(['', '', '', '', 'إجمالي التأخير:', emp.totalDelay, '']);
+                data.push(['', '', '', '', 'السماح المستخدم:', emp.usedGrace, '']);
+                data.push(['', '', '', '', 'صافي التأخير:', net, '']);
+                emp.details.forEach(d => data.push([emp.empId, emp.name, d.dateStr, d.day, d.firstIn, d.delay, '']));
+                data.push([]);
+            });
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'تقرير شامل');
+            XLSX.writeFile(wb, `تقرير_موظفين_${moment().format('YYYYMMDD_HHmm')}.xlsx`);
+        }
+
+        // ---------- تصدير ملخص إلى PDF (باستخدام window.print لضمان ظهور جميع البيانات) ----------
+        function exportSummaryToPDF() {
+            if (!processedData) { alert('الرجاء معالجة البيانات أولاً.'); return; }
+
+            // فتح نافذة طباعة جديدة
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('الرجاء السماح للنوافذ المنبثقة');
+                return;
+            }
+
+            let totalDelayAll = processedData.reduce((sum, emp) => sum + emp.totalDelay, 0);
+            let totalNetDelay = processedData.reduce((sum, emp) => sum + Math.max(0, emp.totalDelay - emp.usedGrace), 0);
+            let dates = getFirstAndLastDate();
+
+            // بناء صفوف الجدول
+            let rowsHtml = '';
+            processedData.forEach(emp => {
+                const net = Math.max(0, emp.totalDelay - emp.usedGrace);
+                rowsHtml += `
+                    <tr style="border-bottom:1px solid #ddd;">
+                        <td style="padding:8px; text-align:center;">${emp.empId}</td>
+                        <td style="padding:8px; text-align:center;">${emp.name}</td>
+                        <td style="padding:8px; text-align:center;">${emp.totalDelay}</td>
+                        <td style="padding:8px; text-align:center;">${emp.usedGrace}</td>
+                        <td style="padding:8px; text-align:center;">${net}</td>
+                    </tr>
+                `;
+            });
+
+            // هيكل HTML كامل مع CSS
+            const html = `
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>ملخص تأخيرات الموظفين</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Cairo', sans-serif; padding: 20px; margin: 0; }
+                        h2 { color: #1e3c72; border-bottom: 3px solid #f39c12; padding-bottom: 8px; margin-top: 0; }
+                        .stats { background: linear-gradient(135deg, #eef4ff, #ffffff); padding:15px; border-radius:18px; margin:15px 0; display:flex; flex-wrap:wrap; gap:15px; align-items:center; border:1px solid #d0e0ff; }
+                        .stat-item { background:white; padding:8px 16px; border-radius:50px; box-shadow:0 3px 8px rgba(0,0,0,0.02); display:inline-flex; align-items:center; gap:6px; border:1px solid #e9ecef; font-size:0.9rem; }
+                        .stat-item i { color:#f39c12; }
+                        table { width:100%; border-collapse:collapse; margin-top:20px; }
+                        th { background:#1e3c72; color:white; padding:10px; }
+                        td { padding:8px; text-align:center; border-bottom:1px solid #ddd; }
+                    </style>
+                </head>
+                <body>
+                    <h2>ملخص تأخيرات الموظفين</h2>
+                    <div class="stats">
+                        <div class="stat-item"><i class="fas fa-calendar-alt"></i> تاريخ التقرير: ${moment().format('YYYY/MM/DD')}</div>
+                        <div class="stat-item"><i class="fas fa-calendar-week"></i> الفترة: ${dates.first} - ${dates.last}</div>
+                        <div class="stat-item"><i class="fas fa-hourglass-half"></i> مدة السماح: ${globalMaxGrace} دقيقة</div>
+                        <div class="stat-item"><i class="fas fa-users"></i> عدد الموظفين: ${processedData.length}</div>
+                        <div class="stat-item"><i class="fas fa-clock"></i> إجمالي التأخير: ${totalDelayAll}</div>
+                        <div class="stat-item"><i class="fas fa-filter"></i> صافي التأخير: ${totalNetDelay}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>رقم الموظف</th><th>الاسم</th><th>إجمالي التأخير</th><th>السماح المستخدم</th><th>صافي التأخير</th></tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+        // ---------- تصدير ملخص إلى Excel ----------
+        function exportSummaryToExcel() {
+            if (!processedData) { alert('الرجاء معالجة البيانات أولاً.'); return; }
+            let data = [['رقم الموظف', 'الاسم', 'إجمالي التأخير', 'السماح المستخدم', 'صافي التأخير']];
+            processedData.forEach(emp => {
+                let net = Math.max(0, emp.totalDelay - emp.usedGrace);
+                data.push([emp.empId, emp.name, emp.totalDelay, emp.usedGrace, net]);
+            });
+            // إضافة سطر ملخص عام
+            let totalDelayAll = processedData.reduce((sum, emp) => sum + emp.totalDelay, 0);
+            let totalUsedGrace = processedData.reduce((sum, emp) => sum + emp.usedGrace, 0);
+            let totalNetDelay = processedData.reduce((sum, emp) => sum + Math.max(0, emp.totalDelay - emp.usedGrace), 0);
+            data.push([]);
+            data.push(['', 'المجموع الكلي:', totalDelayAll, totalUsedGrace, totalNetDelay]);
+            
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'ملخص');
+            XLSX.writeFile(wb, `ملخص_تأخيرات_${moment().format('YYYYMMDD_HHmm')}.xlsx`);
+        }
+    </script>
+</body>
+</html>
